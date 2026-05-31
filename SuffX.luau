@@ -243,7 +243,7 @@ const function Main(Operation:string, Data)
 	Operation = StrictRT and Operation or Operation:lower()
 
 	if Operation == Operations[1] then -- info
-		return HotPath and {KeyOrder=KeyOrder, Indexes=Indexes, Powers=Powers} or GetStruct()
+		return HotPath and {KeyOrder=KeyOrder, Indexes=Indexes, Powers=Powers} or GetStruct(Data)
 	elseif Operation == Operations[2] or Operation == Operations[3] then -- getsuffix / tossufix
 		if StrictDB then
 			assert(type(Data) == "table", CommonErrs[1]:format("table", type(Data) ) )

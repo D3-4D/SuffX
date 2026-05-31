@@ -106,7 +106,7 @@ The library assumes standard western short-scale formatting optimized via patter
 ## Technical Specifications and Constraints
 
 > [!WARNING]
-> Negative numerical input processing is temporarily restricted. Negative numbers passed into internal functions will clear to zero thresholds via math.max(Number, 0) evaluation lines.
+> Negative numerical input processing is temporarily restricted. Negative numbers passed into internal functions will clear to zero thresholds via math.max(Number, 0) evaluation lines. As a temporary workaround, apply math.abs and reprocess the resulting outputs.
 
 > getsuffix and tosuffix indexed inputs handles are case-sensitive, regardless of StrictRT.
 

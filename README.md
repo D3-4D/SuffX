@@ -100,13 +100,14 @@ The library assumes standard western short-scale formatting optimized via patter
 ```
 3. Uncomment the fallback iteration procedures immediately preceding it to verify dynamic scale groupings safely.
 
-4. Repeat the procedure for the `GetSuffix` handle.
+4. Repeat the procedure for the `getsuffix` handle.
 ---
 
 ## Technical Specifications and Constraints
 
 > [!WARNING]
 > Negative numerical input processing is temporarily restricted. Negative numbers passed into internal functions will clear to zero thresholds via `math.max(Number, 0)` evaluation lines.
+> getsuffix and tosuffix indexed inputs handles are case-sensitive, regardless of StrictRT.
 
 * **Type Constraints**: Parameterized dictionaries accept arguments under both positional arrays and typed string-key indexing structures defined by the type of thefirst argument (`Data.Number` vs `Data[1]`). Ensure argument structures strictly match execution signatures if running under `StrictDB = true`.
 * **Data Integrity**: If `HotPath` or `FlexRT` variables are set to `false`, internal collection indexes on `Suffixes` freeze natively using `table.freeze()` for optimization purposes and to preserve initial data configurations safely across isolated scopes.

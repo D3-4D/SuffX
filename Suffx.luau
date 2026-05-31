@@ -28,6 +28,9 @@ local Operations:{string} = {
 	"tosuffix",
 	"tonumber"
 }--[[
+
+*Pseudo typage*
+
 [1] = Returns structural processing information for the suffixes
 
 Inputs: {[WhitelistKey(strict("K"|"I"|"P") )] (boolean)}?
@@ -35,10 +38,18 @@ Outputs: {["KeyOrder"] (table?), ["Indexes"] (table?), ["Powers"] (table?)}
 
 [2] Returns all (numerical) input correspondent suffixes
 
-[3] = Returns transformed (suffixed) input into it's numerical form
+Inputs: {Number(number?)|[Number(strict("Number") )] (number), Unabbreviated(boolean?)|[Unabbreviated(strict("FullName") )] (boolean)?, IncludeAll(string?)|[IncludeAll(strict("Complete") )] (boolean)?}
+Outputs: IncludeAll and {[Suffix(number)] (Number(string) )?} or {([Suffix(string)] (Active(boolean) ) & [Index(strict(1) )] (Suffix(string) ) )?}
 
-[4] = Returs transformed (numerical) input into it's suffixed form
+[3] = Returns transformed (numerical) input into it's suffixed form
 
+Inputs: {Number(number)|[Number(strict("Number") )] (number), Unabbreviated(boolean?)|[Unabbreviated(strict("FullName") )] (boolean)?, Decimals(number?)|[Decimals(strict("Decimals") )] (number)?, IndexToLeft(boolean?)|[IndexToLeft(strict("LeftIndex") )] (boolean)?}
+Outputs: Encoded(string)?
+
+[4] = Returs transformed (suffixed) input into it's numerical form
+
+Inputs: SuffixedNumb(string)
+Outputs: Encoded(number)?
 ]]
 
 -- Safe to change

@@ -1,7 +1,7 @@
-const FlexRT: boolean = false -- Runtime flexibility setting, slight processing overhead
-const HotPath: boolean = true -- Runtime optimization measures, slight memory overhead
-const StrictRT:boolean = false -- Runtime malformatted input error correction toggle (true = off)
-const StrictDB:boolean = true -- Enforces correct parameter types for debugging
+const FlexRT: boolean = true -- Runtime flexibility setting, moderate processing overhead
+const HotPath: boolean = true -- Runtime optimization measures, negligible memory overhead
+const StrictRT:boolean = false -- Runtime malformatted input error correction toggle (true = off), negligible processing overhead
+const StrictDB:boolean = true -- Enforces correct parameter types for debugging, negligible processing overhead
 
 -- Runtime fixed variables
 ----
@@ -20,7 +20,7 @@ local Suffixes:{[number]:{string}} = { -- [zeros] = {"abbreviation", "full"}
 	[30] = {"No", "Nonillion"},
 	[33] = {"Dc", "Decillion"},
 	[36] = {"Ud", "Undecillion"}
-} -- Max precision = 308
+} -- Max precision = 306-308 (~= 10^3 centillion)
 
 local Operations:{string} = {
 	"info",
@@ -34,11 +34,10 @@ Inputs: {[WhitelistKey(strict("K"|"I"|"P") )] (boolean)}?
 Outputs: {["KeyOrder"] (table?), ["Indexes"] (table?), ["Powers"] (table?)}
 
 [2] Returns all (numerical) input correspondent suffixes
-...
+
 [3] = Returns transformed (suffixed) input into it's numerical form
-...
+
 [4] = Returs transformed (numerical) input into it's suffixed form
-...
 
 ]]
 
@@ -52,6 +51,7 @@ const CommonErrs:{[number]:string}? = StrictDB and table.freeze({
 
 if StrictDB then
 	--[[
+	-- Memory and processing overhead, possibly lighter/faster with the optimize or native flag
 	for _, Obj in {FlexRT, HotPath, StrictDB, StrictRT} do
 		assert(type(Obj)=="boolean")
 	end
@@ -67,10 +67,10 @@ end
 
 local KeyOrder:{[number]: number}? = HotPath and {} or nil -- Iterable ordered 'Suffixes' indexes
 local Indexes:{[number]: string}? = HotPath and {} or nil -- Indexes all denominations to it's respective 'Suffixes' index
-local Powers:{[number]: number}? = HotPath and {} or nil -- Preregisters 'Suffixes' indexes in it's respective (log10) numerical format
+local Powers:{[number]: number}? = HotPath and {} or nil -- Preregisters 'Suffixes' indexes in it's respective numerical format (in powers of 10)
 
 -- Adds overhead
-const CustProxyTab = FlexRT and function(Tab, OnWrite:()->any?, OnRead:()->any?, RawProxy:boolean?)
+const CustProxyTab = FlexRT and function(Tab, OnWrite:(MetaMethod:boolean, Idx:number, Value:any)->any?, OnRead:(MetaMethod:boolean, Idx:number)->any?, RawProxy:boolean?)
 	if StrictDB then
 		assert(type(Tab) == "table", CommonErrs[1]:format("table", type(Tab) ) )
 		assert(type(OnRead) == "function" or (OnRead == nil and OnWrite), CommonErrs[1]:format("function?", type(OnRead) ) )
@@ -83,7 +83,7 @@ const CustProxyTab = FlexRT and function(Tab, OnWrite:()->any?, OnRead:()->any?,
 			const Exists = rawget(Tab, Idx)
 
 			if OnWrite then
-				pcall(OnWrite, Idx, Exists, true) -- Prefer adding "task.defer" layer, if not procedural logic
+				pcall(OnWrite, true, Idx, Value) -- Prefer adding "task.defer" layer, if not procedural logic
 			end
 
 			if RawProxy then
@@ -98,7 +98,7 @@ const CustProxyTab = FlexRT and function(Tab, OnWrite:()->any?, OnRead:()->any?,
 			const Exists = rawget(Tab, Idx)
 
 			if OnRead then
-				pcall(OnRead, Idx, Exists, true) -- Prefer adding "task.defer" layer, if not procedural logic
+				pcall(OnRead, true, Idx) -- Prefer adding "task.defer" layer, if not procedural logic
 			end
 		end,
 		__iter = function()
@@ -249,6 +249,8 @@ const function Main(Operation:string, Data)
 				return {}
 			end
 			
+			const SFX = Suffixes[Curr][FullName and 2 or 1]
+			
 			--[[ Uncheck this for unpatterned mode!!
 			-- (and remove the subsequent statements)
 			-- (check "GetVal")
@@ -259,7 +261,9 @@ const function Main(Operation:string, Data)
 					Ret[Suffixes[Val][FullName and 2 or 1] ] = Number:sub(NumIdx-((Itt[next(Itt, Idx)] or NumIdx)-1), NumIdx-Val)
 				end
 			else
-				Ret[Suffixes[Curr][FullName and 2 or 1] ] = true--Number:sub(NumIdx-((Itt[next(Itt, Idx)] or NumIdx)-1), NumIdx-Curr)
+				Ret[1] = SFX
+				Ret[SFX] = true
+				--Ret[SFX] = Number:sub(NumIdx-((Itt[next(Itt, Idx)] or NumIdx)-1), NumIdx-Curr)
 			end
 			--
 			
@@ -270,14 +274,15 @@ const function Main(Operation:string, Data)
 			if Complete then
 				const Order = HotPath and KeyOrder or GetStruct({["K"] = true}).KeyOrder
 				for Idx, Val in Order do
-					Ret[Suffixes[Val][FullName and 2 or 1] ] = Number:sub(NumIdx-((Order[next(Order, Idx)] or NumIdx)-1), NumIdx-Val)
+					Ret[SFX] = Number:sub(NumIdx-((Order[next(Order, Idx)] or NumIdx)-1), NumIdx-Val)
 					if Val == Curr then
 						break
 					end
 				end
 			else
-				Ret[Suffixes[Curr][FullName and 2 or 1] ] = true
-				--Ret[Suffixes[Curr][FullName and 2 or 1] ] = Number:sub(NumIdx-((Order[next(Order, Idx)] or NumIdx)-1), NumIdx-Val)
+				Ret[1] = SFX
+				Ret[SFX] = true
+				--Ret[SFX] = Number:sub(NumIdx-((Order[next(Order, Idx)] or NumIdx)-1), NumIdx-Val)
 			end
 			--
 			
@@ -310,30 +315,36 @@ const function Main(Operation:string, Data)
 
 		const DecimalSplit = Data:split(".")
 
-		const Unit = (HotPath and Powers[S] or 10^S) or 1
-
 		DecimalSplit[2] = DecimalSplit[2] or "0"
 
 		return 
-			tonumber(DecimalSplit[1]) * Unit +
-			(HotPath and Powers[S-#DecimalSplit[2]] or 10^(S-#DecimalSplit[2]))* DecimalSplit[2]
+			tonumber(DecimalSplit[1]) * (HotPath and Powers[S] or 10^S) +
+			(HotPath and Powers[S-#DecimalSplit[2]] or 10^(S-#DecimalSplit[2])) * DecimalSplit[2]
 	else
-		error("Invalid operation: '"..Operation.."'.")
+		error(StrictDB and CommonErrs[1]:format(string.format("Strict(\"%s\")", table.concat(Operations, "\"|\"")), Operation) or "Invalid operation: '"..Operation.."'.")
 	end
 end
 
-if not StrictRT then
-	const function Upd(Idx)
-		Operations[Idx] = Operations[Idx] and Operations[Idx]:lower() or nil
-	end
+local RetOp = Operations
+if FlexRT then
+	const Upd = FlexRT and function(ProxyMeta, Idx, Val)
+		if ProxyMeta then
+			rawset(Operations, Idx, Val)
+		else
+			Operations[Idx] = Val and (StrictRT and Val:lower() or Val) or nil
+		end
+	end or nil
 	
-	for Idx,_ in Operations do
-		Upd(Idx)
+	if StrictRT then
+		for Idx, Val in Operations do
+			Upd(false, Idx, Val)
+		end
 	end
 
-	Operations = FlexRT and CustProxyTab(Operations, Upd, nil, true) or table.freeze(Operations)
+	RetOp = FlexRT and CustProxyTab(Operations, Upd, nil, true) or table.freeze(Operations)
 end
 
+local RetSfx = Suffixes
 if HotPath then
 	const function Upd()
 		const Temp = GetStruct()
@@ -342,13 +353,10 @@ if HotPath then
 
 	Upd()
 
-	if not FlexRT then
-		table.freeze(Suffixes)
-		Suffixes = Suffixes
-	else
-		Suffixes = CustProxyTab(Suffixes, Upd, nil, true)
-	end
+	RetSfx = FlexRT and CustProxyTab(Suffixes, Upd, nil, true) or table.freeze(Suffixes)
+else
+	RetSfx = FlexRT and Suffixes or table.freeze(Suffixes)
 end
 
-const R = {Main, Operations, Suffixes}
+const R = {Main, RetOp, RetSfx}
 return R

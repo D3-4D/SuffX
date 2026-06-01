@@ -322,14 +322,18 @@ const function Main(Operation:string, Data)
 			
 			const LeftIndex:boolean = Data[Indexed and "LeftAttch" or 4]
 			local S = GetVal(Number)
-
 			S = S[#S]
+			
 			const Sf = Suffixes[S]
 			
-			const Pn = Decimals and Number:sub(1, NumIdx-S).."."..Number:sub(NumIdx-S+1, Decimals+1) or
-				Number:sub(1, NumIdx-S)
+			if Sf then
+				const Pn = Decimals and Number:sub(1, NumIdx-S).."."..Number:sub(NumIdx-S+1, Decimals+1) or
+					Number:sub(1, NumIdx-S)
 
-			return (LeftIndex and Sf[FullName and 2 or 1] or Pn).." "..(LeftIndex and Pn or Sf[FullName and 2 or 1])
+				return (LeftIndex and Sf[FullName and 2 or 1] or Pn).." "..(LeftIndex and Pn or Sf[FullName and 2 or 1])
+			else
+				return nil
+			end	
 		end
 	elseif Operation == Operations[4] then -- tonumber
 		assert(type(Data) == "string", "Invalid conversion type. Expected string, got "..type(Data)..".")

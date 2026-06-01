@@ -9,7 +9,7 @@ This library provides structural utility for encoding numerical values into form
 The module returns an array containing the central execution wrapper, the active operations list, and the registered suffix data configuration.
 
 ```lua
-local SuffXLib= require(path.to.module)
+local SuffXLib = require(path.to.module)
 local Main = SuffXLib[1]
 local Operations = SuffXLib[2]
 local Suffixes = SuffXLib[3]
@@ -103,9 +103,6 @@ The library assumes standard western short-scale formatting optimized via patter
 ---
 
 ## Technical Specifications and Constraints
-
-> [!WARNING]
-> Negative numerical input processing is temporarily restricted. Negative numbers passed into internal functions will clear to zero thresholds via math.max(Number, 0) evaluation lines. As a temporary workaround, apply math.abs and reprocess the resulting outputs.
 
 > getsuffix and tosuffix indexed inputs handles are case-sensitive, regardless of StrictRT.
 

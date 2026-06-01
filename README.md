@@ -66,7 +66,7 @@ These values are evaluated statically at module definition to establish memory p
 
 These variables regulate localized parsing operations and lookups. If `FlexRT` is activated, alterations propagate dynamically through custom structural proxies.
 
-* **`Suffixes`**: Map indexing structural groupings to arrays declaring `[1] = Short Abbreviation` and `[2] = Full Name`. Configured natively from $10^3$ (`K`) through $10^{36}$ (`Ud`). Maximum precision supports scales up to approximately $\approx 10^{306}$.
+* **`Suffixes`**: Map indexing structural groupings to arrays declaring `[1] = Short Abbreviation` and `[2] = Full Name`. Configured natively from 10^3 (`K`) through 10^36 (`Ud`). Maximum precision supports scales up to approximately 10^306.
 * **`Operations`**: String collection declaring valid primary keywords intended for parameter routing inside the main logic. Includes `"info"`, `"getsuffix"`, `"tosuffix"`, and `"tonumber"`.
 
 ---
@@ -96,7 +96,6 @@ The library assumes standard western short-scale formatting optimized via patter
 ```lua
 -- const Len = math.max(math.log10(Numb), 1)
 -- return {Len-Len%3}
-
 ```
 3. Uncomment the fallback iteration procedures immediately preceding it to verify dynamic scale groupings safely.
 

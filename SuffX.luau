@@ -18,14 +18,14 @@ Copyright [2026] [S0Studios]
 
 const FlexRT: boolean = true -- Runtime flexibility setting, moderate processing overhead
 const HotPath: boolean = true -- Runtime optimization measures, negligible memory overhead
-const StrictRT:boolean = false -- Runtime malformatted input error correction toggle (true = off), negligible processing overhead
+const StrictRT:boolean = false -- Runtime malformatted input error correction toggle (true = off.) When off, negligible processing overhead
 const StrictDB:boolean = true -- Enforces correct parameter types for debugging, negligible processing overhead
 
 -- Runtime fixed variables
 ----
 -- Runtime modifiable variables
 
-local Suffixes:{[number]:{string}} = { -- [zeros] = {"abbreviation", "full"}
+const Suffixes:{[number]:{string}} = { -- [zeros] = {"abbreviation", "full"}
 	[3] = {"K", "Thousand"},
 	[6] = {"M", "Million"},
 	[9] = {"B", "Billion"},
@@ -40,7 +40,7 @@ local Suffixes:{[number]:{string}} = { -- [zeros] = {"abbreviation", "full"}
 	[36] = {"Ud", "Undecillion"}
 } -- Max precision = 306-308 (~= 10^3 centillion)
 
-local Operations:{string} = {
+const Operations:{string} = {
 	"info",
 	"getsuffix",
 	"tosuffix",
@@ -89,7 +89,7 @@ if StrictDB then
 	assert(type(HotPath) == "boolean", CommonErrs[1]:format("boolean", type(HotPath) ) )
 	assert(type(StrictDB) == "boolean", CommonErrs[1]:format("boolean", type(StrictDB) ) )
 	assert(type(StrictRT) == "boolean", CommonErrs[1]:format("boolean", type(StrictRT) ) )
-	
+
 	assert(type(Suffixes) == "table", CommonErrs[1]:format("table", type(Suffixes) ) )
 	assert(type(Operations) == "table", CommonErrs[1]:format("table", type(Operations) ) )
 end
@@ -184,14 +184,14 @@ const function GetVal(Numb:string|number): number?|{number?}
 	end
 
 	if type(Numb) == "string" and not tonumber(Numb) then
-		const Hit = Numb:gsub("[%d%.%s]+", "")
-
+		const Hit = Numb:gsub("[%d%.%s%-]+", "") -- Only include string (suffix)
+			
 		if HotPath then
 			return Indexes[Hit]
 		end
 
 		const SrchIdx = Hit:len() < 5 and 1 or 2 -- Abbreviation or prolonged
-		
+
 		for Idx, Obj in Suffixes do
 			if Obj[SrchIdx] == Hit then
 				return Idx
@@ -201,7 +201,7 @@ const function GetVal(Numb:string|number): number?|{number?}
 		return nil
 	else
 		Numb = tonumber(Numb)
-		
+
 		--[[
 		--
 		local Proc = HotPath and {KeyOrder = KeyOrder, Powers = Powers} or GetStruct({["K"] = true, ["P"] = true})
@@ -231,7 +231,7 @@ const function GetVal(Numb:string|number): number?|{number?}
 		-- [WARNING]: Pattern-based optimization! Only keep implementation if you intend to use the short-scale naming system.
 		-- | Otherwise, uncomment preceding procedure and remove the following statement.
 		-- | Also check "getsuffix" handle.
-		
+
 		--
 		const Len = math.max(math.log10(Numb), 1)
 		return {Len-Len%3}
@@ -248,24 +248,25 @@ const function Main(Operation:string, Data)
 		if StrictDB then
 			assert(type(Data) == "table", CommonErrs[1]:format("table", type(Data) ) )
 		end
-		
+
 		local Indexed = Data.Number ~= nil
 		local Number:number|string = Indexed and Data.Number or Data[1]
 
 		if StrictDB then
 			assert(type(Number) == "number" or type(Number) == "string", CommonErrs[1]:format("number", type(Number) ) )
 		end
-			
-		Number = tostring(math.floor(math.max(Number, 0) ) )-- removed support for negatives (temp)
-
+	
+		const Sign = tonumber(Number) < 0 and "-" or ""
+		Number = tostring(math.floor(Number) )
+		
 		const FullName:boolean = Data[Indexed and "FullIdx" or 2]
 		const NumIdx = #Number
 
 		if Operation == Operations[2] then -- getsuffix
 			Indexed = nil
-			
+
 			const Complete = Data[Indexed and "Complete" or 3]
-			
+
 			if NumIdx < (HotPath and KeyOrder[1] or next(Suffixes)) then
 				return {}
 			end
@@ -273,13 +274,13 @@ const function Main(Operation:string, Data)
 			const Ret = {}
 			const Itt = GetVal(Number)
 			const Curr = Itt[#Itt]
-			
+
 			if not Suffixes[Curr] then
 				return {}
 			end
-			
+
 			const SFX = Suffixes[Curr][FullName and 2 or 1]
-			
+
 			--[[ Uncheck this for unpatterned mode!!
 			-- (and remove the subsequent statements)
 			-- (check "GetVal")
@@ -297,13 +298,13 @@ const function Main(Operation:string, Data)
 			--
 			
 			--]]
-			
+
 			--
 			--const Order = HotPath and KeyOrder or GetStruct({["K"] = true}).KeyOrder
 			if Complete then
 				const Order = HotPath and KeyOrder or GetStruct({["K"] = true}).KeyOrder
 				for Idx, Val in Order do
-					Ret[SFX] = Number:sub(NumIdx-((Order[next(Order, Idx)] or NumIdx)-1), NumIdx-Val)
+					Ret[SFX] = Sign .. Number:sub(NumIdx-((Order[next(Order, Idx)] or NumIdx)-1), NumIdx-Val)
 					if Val == Curr then
 						break
 					end
@@ -314,47 +315,45 @@ const function Main(Operation:string, Data)
 				--Ret[SFX] = Number:sub(NumIdx-((Order[next(Order, Idx)] or NumIdx)-1), NumIdx-Val)
 			end
 			--
-			
+
 			return Ret
 		else -- tosuffix
 			local Decimals:number = Data[Indexed and "Decimals" or 3]
 			Decimals = Decimals and math.max(Decimals, 1)
-			
-			const LeftIndex:boolean = Data[Indexed and "LeftAttch" or 4]
-			local S = GetVal(Number)
-			S = S[#S]
-			
-			const Sf = Suffixes[S]
-			
-			if Sf then
-				const Pn = Decimals and Number:sub(1, NumIdx-S).."."..Number:sub(NumIdx-S+1, Decimals+1) or
-					Number:sub(1, NumIdx-S)
 
-				return (LeftIndex and Sf[FullName and 2 or 1] or Pn).." "..(LeftIndex and Pn or Sf[FullName and 2 or 1])
+			const LeftIndex:boolean = Data[Indexed and "LeftAttch" or 4]
+			local Idx = GetVal(Number)
+			Idx = Idx[#Idx]
+
+			const Sf = Suffixes[Idx]
+
+			if Sf then
+				const ParsedNum = Decimals and
+					Sign .. Number:sub(1, NumIdx-Idx) .. "." .. Number:sub(NumIdx-Idx+1, Decimals+1) or
+					Number:sub(1, NumIdx-Idx)
+
+				return (LeftIndex and Sf[FullName and 2 or 1] or ParsedNum) .. " " .. (LeftIndex and ParsedNum or Sf[FullName and 2 or 1])
 			else
 				return nil
 			end	
 		end
 	elseif Operation == Operations[4] then -- tonumber
-		assert(type(Data) == "string", "Invalid conversion type. Expected string, got "..type(Data)..".")
+		assert(type(Data) == "string", "Invalid conversion type. Expected string, got " .. type(Data) .. ".")
 
 		if not StrictRT then
 			Data = Data:lower()
 		end
+		
+		const DecimalSplit = Data:gsub("[^%d%.]+", ""):split(".")
+		const Decimal = DecimalSplit[2]
 
-		const S = GetVal(Data)
-
-		Data = Data:gsub("[^%d%.]+", "")
-
-		const DecimalSplit = Data:split(".")
-
-		DecimalSplit[2] = DecimalSplit[2] or "0"
-
-		return 
-			tonumber(DecimalSplit[1]) * (HotPath and Powers[S] or 10^S) +
-			(HotPath and Powers[S-#DecimalSplit[2]] or 10^(S-#DecimalSplit[2])) * DecimalSplit[2]
+		const Idx = GetVal(Data)
+		
+		return
+			(Data:find("-") and -1 or 1) * (tonumber(DecimalSplit[1]) * (HotPath and Powers[Idx] or 10^Idx) +
+			(Decimal and ((HotPath and Powers[Idx-#Decimal] or 10^(Idx-#Decimal) ) * Decimal) or 0) )
 	else
-		error(StrictDB and CommonErrs[1]:format(string.format("Strict(\"%s\")", table.concat(Operations, "\"|\"")), Operation) or "Invalid operation: '"..Operation.."'.")
+		error(StrictDB and CommonErrs[1]:format(string.format("Strict(\"%s\")", table.concat(Operations, "\"|\"")), Operation) or "Invalid operation: '" .. Operation .. "'.")
 	end
 end
 
@@ -367,7 +366,7 @@ if FlexRT then
 			Operations[Idx] = Val and (StrictRT and Val:lower() or Val) or nil
 		end
 	end or nil
-	
+
 	if StrictRT then
 		for Idx, Val in Operations do
 			Upd(false, Idx, Val)
@@ -380,8 +379,8 @@ end
 local RetSfx = Suffixes
 if HotPath then
 	const function Upd()
-		const Temp = GetStruct()
-		KeyOrder, Indexes, Powers = table.freeze(Temp.KeyOrder), table.freeze(Temp.Indexes), table.freeze(Temp.Powers)
+		const Struct = GetStruct()
+		KeyOrder, Indexes, Powers = table.freeze(Struct.KeyOrder), table.freeze(Struct.Indexes), table.freeze(Struct.Powers)
 	end
 
 	Upd()

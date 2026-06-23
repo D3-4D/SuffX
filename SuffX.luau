@@ -49,7 +49,7 @@ const Operations:{[number]: string} = {
 	"tosuffix",
 	"tonumber"
 } -- Parameter and output guidance available in abstraction mode
--- For alterations made, check type declaration at line 418 for manual correction
+-- For alterations made, check type declaration at line 421 for manual correction
 
 --[[
 
@@ -110,10 +110,11 @@ const CustProxyTab = FlexRT and function(Tab, OnWrite:(MetaMethod:boolean, Idx:n
 		end,
 		__index = (not OnRead and not RawProxy) and Tab or function(_, Idx)
 			const Exists = rawget(Tab, Idx)
-
+			
 			if OnRead then
 				pcall(OnRead, true, Idx) -- Prefer adding "task.defer" layer, if not procedural logic
 			end
+			return Exists
 		end,
 		__iter = function()
 			return next, Tab
@@ -346,7 +347,7 @@ const function Main(Operation:string, Data)
 end
 
 
-local RetOp = Operations
+local RetOp
 if FlexRT then
 	const Upd = FlexRT and function(ProxyMeta, Idx, Val)
 		if ProxyMeta then
@@ -362,7 +363,9 @@ if FlexRT then
 		end
 	end
 
-	RetOp = FlexRT and CustProxyTab(Operations, Upd, nil, true) or table.freeze(Operations)
+	RetOp = CustProxyTab(Operations, Upd, nil, true)
+else
+	RetOp = table.freeze(Operations)
 end
 
 local RetSfx = Suffixes

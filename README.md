@@ -16,7 +16,7 @@
     - Service: Customized number formatting module
     - Release: 05/23/2026
     - Maintainer: @Dead_S0S / D3-4D
-    - Version: 1.2
+    - Version: 1.3
 ```
 
 # SuffX Library
@@ -77,6 +77,7 @@ These values are evaluated statically at module definition to establish memory p
 | Variable | Type | Default | Description |
 | --- | --- | --- | --- |
 | `FlexRT` | `boolean` | `true` | Enables runtime flexibility. Wraps structural variables in localized proxy tables for hot-reloaded configuration synchronization. Adds mild execution overhead. |
+| `AbstractMethods` | `boolean` | `true` | Returns a simplified main call wrapper with abstracted methods and negligible processing overhead. |
 | `HotPath` | `boolean` | `true` | Pre-computes structural index lookups (`KeyOrder`, `Indexes`, `Powers`) during initialization to accelerate operational response windows with minimal memory footprints. |
 | `StrictRT` | `boolean` | `false` | Toggles runtime malformed string input corrections. Setting this to `true` disables automatic string case-lowering, strictly treating inputs as case-sensitive. |
 | `StrictDB` | `boolean` | `true` | Enforces runtime type validation on parameters passed to operations. Intended for development environments to simplify data flow debugging. |

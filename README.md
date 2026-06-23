@@ -31,9 +31,10 @@ The module returns an array containing the central execution wrapper, the active
 
 ```lua
 local SuffXLib = require(path.to.module)
-local Main = SuffXLib[1]
-local Operations = SuffXLib[2]
-local Suffixes = SuffXLib[3]
+local Main = SuffXLib.Main
+local Operations = SuffXLib.Operations
+local Suffixes = SuffXLib.Suffixes
+local CompiledSettings = SuffXLib.Settings
 
 ```
 

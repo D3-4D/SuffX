@@ -16,16 +16,19 @@ Copyright [2026] [S0Studios]
 
 --]]
 
-const FlexRT: boolean = true -- Runtime flexibility setting, moderate processing overhead
-const HotPath: boolean = true -- Runtime optimization measures, negligible memory overhead
-const StrictRT:boolean = false -- Runtime malformatted input error correction toggle (true = off.) When off, negligible processing overhead
+
+const FlexRT:boolean = false -- Runtime flexibility setting, moderate processing overhead
+const AbstractMethods:boolean = true -- Return simplified main call wrapper with abstracted methods, negligible processing overhead
 const StrictDB:boolean = true -- Enforces correct parameter types for debugging, negligible processing overhead
+const StrictRT:boolean = false -- Runtime malformatted input error correction toggle (true = off.) When off, negligible processing overhead
+const HotPath:boolean = true -- Runtime optimization measures, negligible memory overhead
+
 
 -- Runtime fixed variables
 ----
 -- Runtime modifiable variables
 
-const Suffixes:{[number]:{string}} = { -- [zeros] = {"abbreviation", "full"}
+const Suffixes:{[number]:{[number]: string} } = { -- [zeros] = {"abbreviation", "full"}
 	[3] = {"K", "Thousand"},
 	[6] = {"M", "Million"},
 	[9] = {"B", "Billion"},
@@ -40,34 +43,26 @@ const Suffixes:{[number]:{string}} = { -- [zeros] = {"abbreviation", "full"}
 	[36] = {"Ud", "Undecillion"}
 } -- Max precision = 306-308 (~= 10^3 centillion)
 
-const Operations:{string} = {
+const Operations:{[number]: string} = {
 	"info",
 	"getsuffix",
 	"tosuffix",
 	"tonumber"
-}--[[
+} -- Parameter and output guidance available in abstraction mode
+-- For alterations made, check type declaration at line 418 for manual correction
 
-*Pseudo typage*
+--[[
+
+- Functions
 
 [1] = Returns structural processing information for the suffixes
 
-Inputs: {[WhitelistKey(strict("K"|"I"|"P") )] (boolean)}?
-Outputs: {["KeyOrder"] (table?), ["Indexes"] (table?), ["Powers"] (table?)}
+[2] Returns the (numerical) input's correspondent suffix(es)
 
-[2] Returns all (numerical) input correspondent suffixes
+[3] = Returns the transformed (numerical) inputs as it's suffixed format
 
-Inputs: {Number(number?)|[Number(strict("Number") )] (number), Unabbreviated(boolean?)|[Unabbreviated(strict("FullName") )] (boolean)?, IncludeAll(string?)|[IncludeAll(strict("Complete") )] (boolean)?}
-Outputs: IncludeAll and {[Suffix(number)] (Number(string) )?} or {([Suffix(string)] (Active(boolean) ) & [Index(strict(1) )] (Suffix(string) ) )?}
+[4] = Returns transformed (suffixed) input as it's numerical format
 
-[3] = Returns transformed (numerical) input into it's suffixed form
-
-Inputs: {Number(number)|[Number(strict("Number") )] (number), Unabbreviated(boolean?)|[Unabbreviated(strict("FullName") )] (boolean)?, Decimals(number?)|[Decimals(strict("Decimals") )] (number)?, IndexToLeft(boolean?)|[IndexToLeft(strict("LeftIndex") )] (boolean)?}
-Outputs: Encoded(string)?
-
-[4] = Returs transformed (suffixed) input into it's numerical form
-
-Inputs: SuffixedNumb(string)
-Outputs: Encoded(number)?
 ]]
 
 -- Safe to change
@@ -79,19 +74,9 @@ const CommonErrs:{[number]:string}? = StrictDB and table.freeze({
 }) or nil
 
 if StrictDB then
-	--[[
-	-- Memory and processing overhead, possibly lighter/faster with the optimize or native flag
 	for _, Obj in {FlexRT, HotPath, StrictDB, StrictRT} do
-		assert(type(Obj)=="boolean")
+		assert(type(Obj)=="boolean", CommonErrs[1]:format("boolean", type(Obj) ) )
 	end
-	--]]
-	assert(type(FlexRT) == "boolean", CommonErrs[1]:format("boolean", type(FlexRT) ) )
-	assert(type(HotPath) == "boolean", CommonErrs[1]:format("boolean", type(HotPath) ) )
-	assert(type(StrictDB) == "boolean", CommonErrs[1]:format("boolean", type(StrictDB) ) )
-	assert(type(StrictRT) == "boolean", CommonErrs[1]:format("boolean", type(StrictRT) ) )
-
-	assert(type(Suffixes) == "table", CommonErrs[1]:format("table", type(Suffixes) ) )
-	assert(type(Operations) == "table", CommonErrs[1]:format("table", type(Operations) ) )
 end
 
 local KeyOrder:{[number]: number}? = HotPath and {} or nil -- Iterable ordered 'Suffixes' indexes
@@ -139,7 +124,7 @@ const CustProxyTab = FlexRT and function(Tab, OnWrite:(MetaMethod:boolean, Idx:n
 	})
 end or nil
 
-const function GetStruct(Whitelist:{string}?): {[string]:{[number]:{(number|string)?} }? }
+const function GetStruct(Whitelist:{[keyof<typeof({K=true,I=true,P=true})>]: boolean}?): {[string]:{[number]:{(number|string)?} }? }
 	if StrictDB then
 		assert(type(Whitelist) == "table" or Whitelist == nil, CommonErrs[1]:format("table?", type(Whitelist) ) )
 	end
@@ -230,7 +215,7 @@ const function GetVal(Numb:string|number): number?|{number?}
 
 		-- [WARNING]: Pattern-based optimization! Only keep implementation if you intend to use the short-scale naming system.
 		-- | Otherwise, uncomment preceding procedure and remove the following statement.
-		-- | Also check "getsuffix" handle.
+		-- | Also check the "getsuffix" handle.
 
 		--
 		const Len = math.max(math.log10(Numb), 1)
@@ -238,6 +223,7 @@ const function GetVal(Numb:string|number): number?|{number?}
 		--
 	end
 end
+
 
 const function Main(Operation:string, Data)
 	Operation = StrictRT and Operation or Operation:lower()
@@ -257,7 +243,7 @@ const function Main(Operation:string, Data)
 		end
 	
 		const Sign = tonumber(Number) < 0 and "-" or ""
-		Number = tostring(math.floor(Number) )
+		Number = tostring(math.abs(math.floor(Number) ) )
 		
 		const FullName:boolean = Data[Indexed and "FullIdx" or 2]
 		const NumIdx = #Number
@@ -278,9 +264,6 @@ const function Main(Operation:string, Data)
 			if not Suffixes[Curr] then
 				return {}
 			end
-
-			const SFX = Suffixes[Curr][FullName and 2 or 1]
-
 			--[[ Uncheck this for unpatterned mode!!
 			-- (and remove the subsequent statements)
 			-- (check "GetVal")
@@ -292,27 +275,32 @@ const function Main(Operation:string, Data)
 				end
 			else
 				Ret[1] = SFX
-				Ret[SFX] = true
-				--Ret[SFX] = Number:sub(NumIdx-((Itt[next(Itt, Idx)] or NumIdx)-1), NumIdx-Curr)
+				
+				Ret[SFX] = true -- Alternative
+				--Ret[SFX] = Number:sub(NumIdx-((Itt[next(Itt, Idx)] or NumIdx)-1), NumIdx-Curr) -- Optional
 			end
 			--
 			
 			--]]
 
 			--
-			--const Order = HotPath and KeyOrder or GetStruct({["K"] = true}).KeyOrder
+			--const Order = HotPath and KeyOrder or GetStruct({["K"] = true}).KeyOrder -- Optional
 			if Complete then
 				const Order = HotPath and KeyOrder or GetStruct({["K"] = true}).KeyOrder
 				for Idx, Val in Order do
-					Ret[SFX] = Sign .. Number:sub(NumIdx-((Order[next(Order, Idx)] or NumIdx)-1), NumIdx-Val)
+					const SFX = Suffixes[Order[Idx]][FullName and 2 or 1]
+
+					Ret[SFX] = Sign .. Number:sub(math.max(1, NumIdx-( (Order[next(Order, Idx)] or NumIdx)-1) ), NumIdx-Val)
 					if Val == Curr then
 						break
 					end
 				end
 			else
+				const SFX = Suffixes[Curr][FullName and 2 or 1]
 				Ret[1] = SFX
-				Ret[SFX] = true
-				--Ret[SFX] = Number:sub(NumIdx-((Order[next(Order, Idx)] or NumIdx)-1), NumIdx-Val)
+				
+				Ret[SFX] = true -- Alternative
+				--Ret[SFX] = Number:sub(NumIdx-((Order[next(Order, Idx)] or NumIdx)-1), NumIdx-Val) -- Optional
 			end
 			--
 
@@ -357,6 +345,7 @@ const function Main(Operation:string, Data)
 	end
 end
 
+
 local RetOp = Operations
 if FlexRT then
 	const Upd = FlexRT and function(ProxyMeta, Idx, Val)
@@ -390,5 +379,60 @@ else
 	RetSfx = FlexRT and Suffixes or table.freeze(Suffixes)
 end
 
-const R = {Main, RetOp, RetSfx}
-return R
+const Settings:{
+	FlexRT: boolean,
+	AbstractMethods:boolean,
+	StrictDB:boolean,
+	StrictRT:boolean,
+	HotPath:boolean
+} = table.freeze({
+	FlexRT = FlexRT,
+	AbstractMethods = AbstractMethods,
+	StrictDB = StrictDB,
+	StrictRT = StrictRT,
+	HotPath = HotPath
+})
+
+if AbstractMethods then
+	const Methods = table.freeze(setmetatable({
+		-- Redundant declaration for reading ease
+
+		[1] = function(Whitelist:{[keyof<typeof({K=true,I=true,P=true})>]: boolean}?) : {KeyOrder: {number}?, Indexes:{string}?, Powers:{number}?}
+			return Main(Operations[1], Whitelist)
+		end,
+
+		[2] = function(Number: number|string, Unabbreviated: boolean?, Verbose: boolean?): {[string]: number?} | {(string & boolean)?}
+			return Main(Operations[2], {Number, Unabbreviated, Verbose})
+		end,
+
+		[3] = function(Number: number|string, Unabbreviated: boolean?, DecimalCount: number?, LeftSidedSuffix:boolean?): string
+			return Main(Operations[3], {Number, Unabbreviated, DecimalCount, LeftSidedSuffix})
+		end,
+
+		[4] = function(SuffixedNumber: string): string
+			return Main(Operations[4], SuffixedNumber)
+		end
+	}, {__index = function(Self, Idx)
+			return Idx and Self[table.find(Operations, StrictRT and Idx or Idx:lower())] or error("Invalid index.")
+		end
+	}))::{ -- EDIT MANUALLY
+		["info"]: (Whitelist:{[keyof<typeof({K=true,I=true,P=true})>]: boolean}?) -> {KeyOrder: {number}?, Indexes:{string}?, Powers:{number}?},
+		["getsuffix"]: (Number: number|string, Unabbreviated: boolean?, Verbose: boolean?) -> {[string]: number?} | {(string & boolean)?},
+		["tosuffix"]: (Number: number|string, Unabbreviated: boolean?, DecimalCount: number?, LeftSidedSuffix:boolean?) -> string,
+		["tonumber"]: (SuffixedNumber: string) -> string
+	}
+	
+	return  {Main=Methods, Operations=RetOp, Suffixes=RetSfx, Settings=Settings}::{
+		Main:typeof(Methods),
+		Operations:string,
+		Suffixes:string,
+		Settings:typeof(Settings)
+	}
+else
+	return {Main=Main, Operations=RetOp, Suffixes=RetSfx, Settings=Settings}::{
+		Main:typeof(Main),
+		Operations:string,
+		Suffixes:string,
+		Settings:typeof(Settings)
+	}
+end
